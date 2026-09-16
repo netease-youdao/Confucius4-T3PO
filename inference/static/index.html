@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Confucius4-T3PO</title>
+  <link rel="stylesheet" href="/style.css?v=20260915-metrics">
+</head>
+<body>
+  <!-- data-i18n keys are resolved by applyLanguage() in app.js; the text below
+       is the zh fallback shown before the script runs. -->
+  <header class="topbar">
+    <h1>Confucius4-T3PO</h1>
+    <span id="statusDot" class="dot"></span>
+    <span id="status" class="badge">尚未开始</span>
+    <span class="badge badge-asr">ASR <strong id="asrState">未连接</strong></span>
+    <span class="topbar-spacer"></span>
+    <button id="metricsToggle" class="btn btn-compact" type="button"
+            aria-controls="metricsBar" aria-expanded="false"
+            data-i18n="btn.metrics">指标</button>
+    <!-- Two languages only, so a single toggle beats a select: one click flips
+         it, and the label shows the language you would switch TO. -->
+    <button id="uiLanguage" class="lang-toggle" type="button"
+            aria-label="Switch interface language">
+      <span class="lang-active">ZH</span><span class="lang-sep">/</span><span class="lang-idle">EN</span>
+    </button>
+    <label class="inline-field">
+      <span data-i18n="label.direction">方向</span>
+      <select id="direction">
+        <option value="zh2en" data-i18n="dir.zh2en">中文 → 英文</option>
+        <option value="en2zh" data-i18n="dir.en2zh">英文 → 中文</option>
+      </select>
+    </label>
+    <!-- The three operating points from the evaluation results. Bound when the
+         session starts, so the select is disabled while one runs. -->
+    <label class="inline-field">
+      <span data-i18n="label.latency">延迟档位</span>
+      <select id="latencyMode">
+        <option value="low" data-i18n="latency.low">低延迟</option>
+        <option value="native" selected data-i18n="latency.native">原生</option>
+        <option value="high" data-i18n="latency.high">高质量</option>
+      </select>
+    </label>
+    <label class="inline-field">
+      <span data-i18n="label.display">显示</span>
+      <select id="displayMode">
+        <option value="sentence" selected data-i18n="display.sentence">句对</option>
+        <option value="segment" data-i18n="display.segment">模型段</option>
+      </select>
+    </label>
+    <label class="inline-field">
+      <span data-i18n="label.audioSource">音频来源</span>
+      <select id="audioInputMode">
+        <option value="microphone" selected data-i18n="src.microphone">麦克风</option>
+        <option value="tab" data-i18n="src.tab">浏览器标签页音频</option>
+        <option value="file" data-i18n="src.file">音频文件</option>
+      </select>
+    </label>
+    <button id="record" class="btn btn-primary" data-i18n="btn.start">🎤 开始</button>
+    <label for="fileInput" class="btn" data-i18n="btn.upload">📁 上传音频</label>
+    <input id="fileInput" type="file" accept="audio/*">
+    <button id="pause" class="btn" disabled data-i18n="btn.pause">暂停</button>
+    <button id="end" class="btn btn-danger" disabled data-i18n="btn.end">结束</button>
+    <button id="reset" class="btn" data-i18n="btn.reset">新会话</button>
+    <button id="glossaryButton" class="btn glossary-button" type="button"
+            data-glossary-count="0" aria-haspopup="dialog" aria-expanded="false">
+      <span data-i18n="glossary.button">术语</span>
+      <span id="glossaryBadge" class="glossary-badge" aria-hidden="true">0</span>
+    </button>
+  </header>
+
+  <p class="hint-bar" id="asrHint" data-i18n="hint.asr">未配置 ASR 服务时，可用下方的文本输入区验证翻译效果。</p>
+
+  <section id="playerRow" class="player hidden">
+    <button id="play" class="btn btn-compact" disabled>▶</button>
+    <span id="fileName" class="file-name"></span>
+    <progress id="progress" value="0" max="100"></progress>
+    <span id="audioTime">0:00 / 0:00</span>
+    <audio id="audioPlayer"></audio>
+  </section>
+
+  <main class="panels panels-single">
+    <article class="panel">
+      <div class="panel-header">
+        <h2 id="targetTitle">句对（中文 → English）</h2>
+        <span id="segmentCount" class="badge">0 句</span>
+      </div>
+      <div id="translation" class="panel-body translation-body" aria-live="polite"></div>
+    </article>
+  </main>
+
+  <!-- Text input, always visible: the only input path when no ASR service is
+       configured. A whole passage goes in and the client paces it into the
+       model in chunks, so the streaming behaviour matches live speech instead
+       of asking the operator to type one chunk at a time. -->
+  <section class="text-input">
+    <label class="text-input-label" for="textInput" data-i18n="label.textInput">文本输入</label>
+    <textarea id="textInput" rows="2" spellcheck="false"
+              placeholder="粘贴或输入一段文本，Ctrl+Enter 开始流式送入"></textarea>
+    <label class="inline-field text-input-rate">
+      <span data-i18n="label.chunkSize">每次</span>
+      <select id="chunkSize">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="4">4</option>
+        <option value="8">8</option>
+      </select>
+      <span data-i18n="label.chunkUnit">单位</span>
+    </label>
+    <button id="sendText" class="btn btn-primary" data-i18n="btn.sendText">流式送入</button>
+    <button id="stopText" class="btn" data-i18n="btn.stopText" hidden>停止</button>
+  </section>
+
+  <!-- Collapsed by default so the sentence pairs above stay the focus; the
+       header doubles as the toggle. -->
+  <section class="full-compare is-collapsed" id="fullCompare">
+    <button class="full-compare-header" id="fullCompareToggle" type="button"
+            aria-expanded="false" aria-controls="fullCompareBody">
+      <span class="full-compare-caret" aria-hidden="true">▸</span>
+      <h2 data-i18n="panel.compare">完整对照</h2>
+    </button>
+    <div class="full-compare-body" id="fullCompareBody">
+      <article class="full-text-panel">
+        <div class="full-text-title" data-i18n="panel.fullSource">完整原文</div>
+        <div id="fullSourceText" class="full-text-content"><span class="placeholder" data-i18n="placeholder.source">等待原文…</span></div>
+      </article>
+      <article class="full-text-panel">
+        <div class="full-text-title" data-i18n="panel.fullTarget">完整译文</div>
+        <div id="fullTranslationText" class="full-text-content"></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="metrics-bar hidden" id="metricsBar">
+    <span class="metric"><span data-i18n="metric.segments">段数</span><strong id="segments">0</strong></span>
+    <span class="metric"><span data-i18n="metric.calls">模型调用</span><strong id="calls">0</strong></span>
+    <span class="metric"><span data-i18n="metric.buffer">缓冲单位</span><strong id="bufferUnits">0</strong></span>
+  </section>
+
+  <!-- Glossary panel. Terms are read when a session starts, so editing is
+       disabled while one runs. -->
+  <div id="glossaryPanel" class="glossary-panel" role="dialog" aria-modal="true"
+       aria-labelledby="glossaryPanelTitle" hidden>
+    <button id="glossaryBackdrop" class="glossary-backdrop" type="button"
+            tabindex="-1" aria-label="Close"></button>
+    <div class="glossary-dialog">
+      <div class="glossary-dialog-head">
+        <h2 id="glossaryPanelTitle" data-i18n="glossary.title">术语表</h2>
+        <span id="glossaryCount" class="glossary-count" aria-live="polite">0</span>
+      </div>
+      <p class="glossary-hint" data-i18n="glossary.hint">每行一条，格式为「源词 -> 译词」。可直接粘贴多行。</p>
+      <form id="glossaryForm" class="glossary-entry" autocomplete="off">
+        <input id="glossaryInput" type="text" spellcheck="false" autocomplete="off"
+               placeholder="NVIDIA -> 英伟达">
+        <button id="glossaryAdd" class="btn btn-primary" type="submit"
+                data-i18n="glossary.add">添加</button>
+      </form>
+      <p id="glossaryError" class="glossary-error" role="alert" hidden></p>
+      <ul id="glossaryList" class="glossary-list"></ul>
+      <p id="glossaryEmpty" class="glossary-hint" data-i18n="glossary.empty">还没有术语。</p>
+      <p id="glossaryLocked" class="glossary-hint glossary-locked" data-i18n="glossary.locked" hidden>术语在会话开始时读取，需结束会话后再修改。</p>
+      <div class="glossary-actions">
+        <button id="glossaryClear" class="btn" type="button" data-i18n="glossary.clear">全部清除</button>
+        <button id="glossaryDone" class="btn btn-primary" type="button" data-i18n="glossary.done">完成</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js?v=20260915-metrics"></script>
+</body>
+</html>

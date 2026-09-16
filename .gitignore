@@ -1,0 +1,23 @@
+# Python build and test artifacts
+__pycache__/
+*.py[cod]
+build/
+*.egg-info/
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Local configuration: .env holds endpoints and keys for a specific deployment.
+.env
+
+# Hugging Face cache, if pointed inside the checkout
+hf-cache/
+
+# Editor/OS noise
+.DS_Store
+*.swp
+
+# Local logo backup, not part of the release.
+logo-old.png

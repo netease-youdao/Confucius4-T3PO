@@ -1,0 +1,385 @@
+/* Single-page layout for the streaming translation demo: sentence pairs, a
+   collapsible full-text comparison, and a glossary dialog. The palette and
+   spacing follow the internal lite demo, which this is adapted from. */
+:root {
+  --ink: #172033;
+  --muted: #68758e;
+  --line: #dfe5ef;
+  --panel: #fff;
+  --page: #f4f7fb;
+  --accent: #315efb;
+  --accent-soft: #e9eeff;
+  --danger: #d83b48;
+  --success: #129a6a;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; min-height: 0; }
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--page);
+  color: var(--ink);
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans SC", sans-serif;
+}
+button, select, textarea { font: inherit; }
+.hidden { display: none !important; }
+
+.topbar {
+  min-height: 61px;
+  padding: 11px 20px;
+  display: flex;
+  align-items: center;
+  gap: 9px 11px;
+  /* Wrap rather than overflow: with English labels the controls do not fit on
+     one row, and anything pushed past the edge became unclickable. */
+  flex-wrap: wrap;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.topbar h1 { margin: 0; font-size: 19px; font-weight: 650; letter-spacing: .01em; }
+/* Pushes everything after it to the far right of the first row, so the language
+   toggle keeps a predictable position instead of floating mid-row. */
+.topbar-spacer { flex: 1 1 auto; }
+.dot { width: 9px; height: 9px; border-radius: 999px; background: #a8b3c7; box-shadow: 0 0 0 3px rgba(168, 179, 199, .18); }
+.dot.live { background: var(--success); box-shadow: 0 0 0 3px rgba(18, 154, 106, .16); }
+.dot.error { background: var(--danger); box-shadow: 0 0 0 3px rgba(216, 59, 72, .16); }
+.badge { flex: none; padding: 3px 9px; border-radius: 999px; background: var(--page); color: var(--muted); font-size: 12px; white-space: nowrap; }
+.badge-asr strong { color: var(--ink); font-weight: 650; }
+.badge-timer { background: var(--accent-soft); color: var(--accent); font-weight: 650; font-variant-numeric: tabular-nums; }
+.badge-timer.urgent { background: #fdecee; color: var(--danger); }
+
+.inline-field { display: flex; align-items: center; gap: 7px; color: var(--muted); font-size: 13px; }
+.inline-field select {
+  padding: 4px 9px;
+  border: 1px solid var(--line);
+  border-radius: 5px;
+  outline: 0;
+  background: var(--panel);
+  color: var(--ink);
+}
+.inline-field select:focus { border-color: var(--accent); }
+#audioInputMode { max-width: 190px; }
+
+.btn {
+  min-height: 34px;
+  padding: 7px 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 550;
+  transition: background .15s ease, opacity .15s ease;
+}
+.btn:hover:not(:disabled) { background: var(--page); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-primary { border-color: transparent; background: var(--accent); color: #fff; }
+.btn-primary:hover:not(:disabled) { background: #2650d8; }
+.btn-danger { border-color: transparent; background: var(--danger); color: #fff; }
+.btn-danger:hover:not(:disabled) { background: #bf323e; }
+.btn-compact { min-height: 28px; padding: 4px 10px; }
+#fileInput { display: none; }
+
+/* Language toggle: the active side is solid, the other side is muted, so the
+   current language reads at a glance and one click flips it. */
+.lang-toggle {
+  min-height: 34px;
+  padding: 6px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  transition: background .15s ease, border-color .15s ease;
+}
+.lang-toggle:hover { background: var(--page); border-color: var(--accent); }
+.lang-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.lang-toggle .lang-active { color: var(--accent); }
+.lang-toggle .lang-idle { color: #a8b3c7; }
+.lang-toggle .lang-sep { color: var(--line); font-weight: 500; }
+
+.hint-bar {
+  margin: 0;
+  padding: 7px 20px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--accent-soft);
+  color: #2a45a8;
+  font-size: 12px;
+}
+
+.player {
+  min-height: 46px;
+  padding: 7px 20px;
+  display: grid;
+  grid-template-columns: auto minmax(100px, 220px) minmax(180px, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 12px;
+}
+.file-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+progress { width: 100%; accent-color: var(--accent); }
+
+.panels {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  overflow: hidden;
+  background: var(--line);
+}
+/* The recognition column is gone: the full-source pane below already shows the
+   streaming transcript, so the sentence pairs take the whole width. */
+.panels-single { grid-template-columns: 1fr; }
+.panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; overflow: hidden; background: var(--panel); }
+.panel-header {
+  min-height: 43px;
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+}
+.panel-header h2, .full-compare-header h2 { margin: 0; color: var(--muted); font-size: 13px; font-weight: 650; letter-spacing: .055em; text-transform: uppercase; }
+.panel-body {
+  flex: 1;
+  min-height: 0;
+  padding: 16px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scroll-behavior: auto;
+  font-size: 16px;
+  line-height: 1.75;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.placeholder { color: #9aa5ba; }
+.translation-placeholder { align-self: center; margin: auto; padding: 16px; }
+.translation-body { display: flex; flex-direction: column; align-items: stretch; gap: 9px; overflow-anchor: none; }
+.pair-card { display: flex; flex-direction: column; gap: 8px; padding: 10px 12px; border-left: 3px solid var(--accent); border-radius: 7px; background: var(--page); }
+.pair-card.current { border-left-color: var(--accent); box-shadow: 0 0 0 1px rgba(49, 94, 251, .26), 0 8px 22px rgba(23, 32, 51, .08); background: var(--accent-soft); }
+.pair-card.pending { border-left-color: #a8b3c7; opacity: .85; }
+.pair-card.pending.current { border-left-color: #e08b1e; opacity: 1; }
+.pair-header { display: flex; align-items: center; gap: 9px; color: var(--muted); font-size: 11px; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.pair-detail { margin-left: auto; color: #9aa5ba; font-weight: 500; text-transform: none; }
+.pair-pending { padding: 1px 7px; border-radius: 999px; background: rgba(104, 117, 142, .12); color: var(--muted); font-weight: 500; text-transform: none; }
+/* The label column was 38px, which fits "原文" but wraps "Source" mid-word.
+   Widen it to hold the longest label in either language and forbid wrapping;
+   a fixed width also keeps the source and target text aligned with each other,
+   which a per-row `auto` column would not. */
+.pair-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 9px; align-items: start; }
+.pair-label { padding-top: 2px; color: var(--muted); font-size: 11px; font-weight: 650; white-space: nowrap; }
+.pair-value { min-width: 0; white-space: pre-wrap; word-break: break-word; }
+.pair-source .pair-value { color: var(--muted); font-size: 13px; line-height: 1.55; }
+.pair-target .pair-value { color: var(--ink); font-size: 16px; line-height: 1.7; }
+
+.full-compare { height: 185px; display: flex; flex-direction: column; flex-shrink: 0; border-top: 1px solid var(--line); background: var(--panel); }
+/* Collapsed: only the toggle strip remains, so the sentence-pair panel above
+   takes the freed space. */
+.full-compare.is-collapsed { height: auto; }
+.full-compare.is-collapsed .full-compare-body { display: none; }
+.full-compare-header {
+  min-height: 38px;
+  width: 100%;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  background: var(--panel);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.full-compare-header:hover { background: var(--page); }
+.full-compare-header:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.full-compare.is-collapsed .full-compare-header { border-bottom: 0; }
+.full-compare-caret { color: var(--muted); font-size: 10px; transition: transform .15s ease; }
+.full-compare:not(.is-collapsed) .full-compare-caret { transform: rotate(90deg); }
+.full-compare-body { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+.full-text-panel { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--panel); }
+.full-text-title { padding: 7px 14px; flex-shrink: 0; color: var(--muted); background: var(--page); font-size: 12px; }
+.full-text-content { flex: 1; min-height: 0; padding: 10px 14px; overflow-y: auto; overflow-anchor: none; scrollbar-gutter: stable; white-space: pre-wrap; word-break: break-word; font-size: 14px; line-height: 1.65; }
+
+.metrics-bar {
+  min-height: 43px;
+  padding: 7px 20px;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+  font-size: 12px;
+}
+.metric { display: flex; gap: 7px; color: var(--muted); }
+.metric strong { color: var(--ink); font-weight: 650; }
+
+@media (max-width: 900px) {
+  body { overflow: auto; }
+  .topbar { flex-wrap: wrap; }
+  .topbar h1 { width: 100%; }
+  .panels, .full-compare-body { grid-template-columns: 1fr; }
+  .panel { min-height: 260px; }
+  .full-compare { height: auto; }
+  .full-text-panel { min-height: 140px; }
+  .metrics-bar { flex-wrap: wrap; gap: 10px 20px; }
+}
+
+/* --- glossary ----------------------------------------------------------- */
+/* Pill button with a count badge, opening a small modal.  Terms are a setup
+   step, not something to fiddle with mid-sentence, so they live behind a
+   dialog rather than taking permanent space in the toolbar. */
+.glossary-button { position: relative; border-radius: 999px; padding: 7px 14px; }
+.glossary-badge {
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--accent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.glossary-button[data-glossary-count="0"] .glossary-badge { display: none; }
+
+.glossary-panel { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; }
+.glossary-panel[hidden] { display: none; }
+.glossary-backdrop { position: absolute; inset: 0; border: 0; padding: 0; background: rgba(23, 32, 51, .32); cursor: pointer; }
+.glossary-dialog {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+  max-height: min(78vh, 620px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  box-shadow: 0 18px 48px rgba(23, 32, 51, .22);
+}
+.glossary-dialog-head { display: flex; align-items: baseline; gap: 10px; }
+.glossary-dialog-head h2 { margin: 0; font-size: 15px; font-weight: 650; }
+.glossary-count { margin-left: auto; color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.glossary-hint { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.glossary-locked { color: #b3701a; }
+.glossary-entry { display: flex; gap: 8px; }
+.glossary-entry input {
+  flex: 1 1 auto;
+  min-width: 0;
+  height: 36px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  outline: 0;
+  background: var(--panel);
+  color: var(--ink);
+  font: inherit;
+  font-size: 13px;
+}
+.glossary-entry input:focus { border-color: var(--accent); }
+.glossary-entry input:disabled { opacity: .55; cursor: not-allowed; }
+.glossary-error { margin: 0; color: var(--danger); font-size: 12px; }
+.glossary-list { flex: 1; min-height: 0; margin: 0; padding: 0; list-style: none; overflow-y: auto; display: flex; flex-wrap: wrap; gap: 7px; align-content: flex-start; }
+.glossary-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 6px 4px 11px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--page);
+  font-size: 12px;
+}
+.glossary-chip-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.glossary-chip-remove {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  line-height: 1;
+}
+.glossary-chip-remove:hover { background: var(--line); color: var(--ink); }
+.glossary-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* --- text increments ---------------------------------------------------- */
+/* Always visible rather than behind a toggle: with no ASR service configured
+   this is the only way to feed the model, and it is the fastest way to
+   reproduce a segmentation case. */
+.text-input {
+  min-height: 46px;
+  padding: 8px 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  border-top: 1px solid var(--line);
+  background: var(--panel);
+}
+.text-input-label { flex: none; color: var(--muted); font-size: 13px; white-space: nowrap; }
+.text-input-rate { flex: none; }
+.text-input-rate select { min-width: 56px; }
+.text-input .btn { flex: none; }
+.text-input textarea {
+  flex: 1;
+  min-width: 0;
+  min-height: 34px;
+  max-height: 88px;
+  padding: 7px 11px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  outline: 0;
+  resize: vertical;
+  background: var(--panel);
+  color: var(--ink);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.text-input textarea:focus { border-color: var(--accent); }
+.text-input textarea:disabled { opacity: .55; cursor: not-allowed; }
+
+@media (max-width: 900px) {
+  .text-input { flex-wrap: wrap; }
+  .text-input textarea { flex-basis: 100%; }
+}

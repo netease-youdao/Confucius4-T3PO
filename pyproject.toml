@@ -1,0 +1,51 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "streaming-translation-inference"
+version = "0.1.0"
+description = "Local text and speech-to-text streaming inference for a bilingual simultaneous translation model"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "fastapi>=0.110,<1",
+  "httpx>=0.27,<1",
+  "numpy>=1.24,<3",
+  "pydantic>=2.6,<3",
+  "uvicorn[standard]>=0.29,<1",
+  # Serving backend for the 14B checkpoint. Linux (x86_64/aarch64) with a
+  # CUDA-capable device; vLLM publishes manylinux wheels only.
+  "vllm>=0.6,<1",
+  # WebSocket client for the separately released Confucius4-R2T2 ASR service.
+  "websockets>=12,<16",
+]
+
+[project.optional-dependencies]
+# Local Hugging Face translation backend (TRANSLATION_BACKEND=hf). Not needed
+# when serving through vLLM. ASR does not use this project's dependencies at
+# all: it runs in the separately deployed R2T2 service.
+models = [
+  "accelerate>=0.30,<2",
+  "huggingface-hub>=0.24,<2",
+  "safetensors>=0.4,<1",
+  "torch>=2.1",
+  "transformers>=4.45,<6",
+]
+dev = ["pytest>=8,<10", "pytest-asyncio>=0.23,<2"]
+
+[project.scripts]
+streaming-translate = "inference.text_inference:main"
+streaming-translate-web = "inference.server:main"
+streaming-translate-download = "inference.download_models:main"
+
+[tool.setuptools.packages.find]
+include = ["inference*"]
+
+[tool.setuptools.package-data]
+inference = ["static/*.html", "static/*.js", "static/*.css"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
