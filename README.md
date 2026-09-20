@@ -30,7 +30,7 @@ This model is a T2T (text-to-text) simultaneous translation model and does not n
 - **Fully streaming text translation:** supports fine-grained chunk input at the character and word level; committed translations are append-only and never rewritten. A stable prefix is preserved through the interleaved history, enabling KV-cache reuse and reducing redundant computation overhead.
 - **Adjustable latency modes:** supports flexible switching across multiple quality–latency tiers, adapting to different simultaneous interpretation scenarios ranging from low-latency to high-quality.
 - **Retained general instruction-following ability:** training does not degrade the general instruction-following ability of the Qwen base model, so further capabilities can be built on top of it, such as terminology constraints.
-- **Cross-lingual generalization:** the model exhibits a degree of cross-lingual generalization. We observe that Chinese-to-Japanese, which was not trained, also supports streaming translation, though quality on directions other than Chinese and English has not been rigorously evaluated.
+- **Cross-lingual generalization:** the model exhibits a degree of cross-lingual generalization. We observe that Japanese-to-Chinese, which was not trained, also supports streaming translation, though quality on directions other than Chinese and English has not been rigorously evaluated.
 
 These capabilities come from two techniques we propose. The first is an algorithm that constructs high-quality segment-aligned data for simultaneous translation: it automatically derives low-latency streaming translation data from conventional parallel corpora, giving the model a well-adapted prior for its streaming cold start without relying on human interpretation corpora. The second is a reinforcement learning algorithm that optimizes the quality–latency frontier: for the competing objectives of quality and latency in simultaneous translation, we propose a frontier-aware reinforcement learning algorithm that measurably advances the Pareto frontier of the policy model. We will provide further details on the training method, data, and implementation in an upcoming technical report.
 
@@ -40,7 +40,8 @@ These capabilities come from two techniques we propose. The first is an algorith
 - [2 Model Downloads](#2-model-downloads)
 - [3 Quick Start](#3-quick-start)
 - [4 Run the Local Web UI Demo](#4-run-the-local-web-ui-demo)
-- [5 Citation](#5-citation)
+- [5 Contact](#5-contact)
+- [6 Citation](#6-citation)
 
 ## 1 Evaluation Results
 
@@ -215,7 +216,30 @@ When `ASR_LANGUAGE` is left empty, the recognition language is set to `Chinese` 
 
 Server-to-client events include `init_ok`, `loading` (`component` is either `translation` or `asr`), `asr` (`text` contains the new text chunk forwarded from R2T2; when `reset` is true, recognition of a sentence is complete and a translation flush is triggered), `translation`, `metrics`, `pause_ok`, `resume_ok`, `ended`, and `error`. For complete field definitions, see [`inference/server.py`](inference/server.py) and [`inference/asr.py`](inference/asr.py).
 
-## 5 Citation
+
+## 5 Contact
+
+Join our community to ask questions, share ideas, and connect with other users and developers.
+
+### 5.1 WeChat Group
+
+Scan the QR code below to join our WeChat group:
+
+<img src="assets/figures/wechat-qrcode.png" alt="WeChat group QR code" width="200">
+
+### 5.2 Business contact
+
+For high-concurrency, production-grade, domestically deployable, or private deployment solutions, as well as business inquiries and partnership opportunities, please feel free to contact us through the channels below.
+
+- **Phone:** +86 010-82558901
+- **Email:** [AIcloud_Business@corp.youdao.com](mailto:AIcloud_Business@corp.youdao.com)
+
+### 5.3 GitHub Issues
+
+We also welcome discussions in this repository’s [Issues](https://github.com/netease-youdao/Confucius4-T3PO/issues) section. Feel free to ask questions, report bugs, or suggest improvements!
+
+
+## 6 Citation
 
 Formal citation information will be added when the technical report is released.
 
